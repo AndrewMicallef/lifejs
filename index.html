@@ -2,87 +2,178 @@
 <html>
 <head>
     <title></title>
+    <style>
+        html, body {
+            margin: 0px;
+        }
+
+        #agentInspector {
+            margin: 0px;
+            padding: 0px;
+            background: #FFF;
+        }
+
+        #brain {
+            height: 400px;
+            width: 100%;
+            margin: 0px;
+            padding: 0px;
+            background: #FFF;
+        }
+    </style>
+    <link type="text/css" href="css/ui-lightness/jquery-ui-1.8.20.custom.css" rel="stylesheet"/>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript"
+            src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+
+    <script type="text/javascript" src="jit.js"></script>
     <script type="text/javascript" src="sylvester.src.js"></script>
-    <script type="text/javascript" src="Life.js"></script>
-    <script type="text/javascript" src="Utils.js"></script>
-    <script type="text/javascript" src="Brain.js"></script>
-    <script type="text/javascript" src="Agent.js"></script>
-    <script type="text/javascript" src="World.js"></script>
-    <script type="text/javascript" src="View.js"></script>
+    <script type="text/javascript" src="Renderer.js"></script>
 
 </head>
 <body>
-    <script type="text/javascript">
-        var settings = {
-            tickDuration:20,
+<script type="text/javascript">
 
-            //World
-            width:1000,
-            height:800,
-            cellSize:50,
+    var settings = {
+        //Vegetation distribution
+        maxFood:0.5,
+        foodAddFrequency:15,
 
-            //Vegetation distribution
-            maxFood:0.5,
-            foodAddFrequency:15,
-
-            minAgents:25,
-            maxAgents:50,
+        minAgents:25,
+        maxAgents:50,
 
 
-            agent:{
-                size:10,
-                speed:0.3,
-                sprintMultiplier:2,
+        agent:{
+            size:10,
+            speed:0.3,
+            sprintMultiplier:2,
 
-                //Vision
-                numberEyes:4,
-                viewDistance:150,
+            //Vision
+            numberEyes:4,
+            viewDistance:150,
 
-                //Weapon
-                spikeStrength:1,
-                spikeSpeed: 0.005,
+            //Weapon
+            spikeStrength:1,
+            spikeSpeed:0.005,
 
-                //Eating + sharing food
-                foodIntake:0.002,
-                foodWasted:0.001,
-                foodTraded:0.001,
-                foodTradeDistance:50,
+            //Eating + sharing food
+            foodIntake:0.002,
+            foodWasted:0.001,
+            foodTraded:0.001,
+            foodTradeDistance:50,
 
-                //Reproduction
-                babies:2,
-                reproductionRate:{
-                    carnivore:7,
-                    herbivore:7
-                },
-                mutationRate:{
-                    0:0.002,
-                    1:0.05
-                },
-
-                //Pain
-                temperatureDiscomfortDamage:0,
-
-                //Death
-                bodyDecayRadius:100,
-                bodyFertilityBonus:5
+            //Reproduction
+            babies:2,
+            reproductionRate:{
+                carnivore:7,
+                herbivore:7
+            },
+            mutationRate:{
+                0:0.002,
+                1:0.05
             },
 
-            brain:{
-                inputSize:25,
-                outputSize:9,
-                connections:4,
-                size:200
+            //Pain
+            temperatureDiscomfortDamage:0,
+
+            //Death
+            bodyDecayRadius:100,
+            bodyFertilityBonus:5
+        },
+
+        brain:{
+            inputSize:25,
+            outputSize:9,
+            connections:4,
+            size:200
+        }
+    };
+
+
+    var view = new Life.Renderer(settings);
+    view.init();
+    document.body.appendChild(view.canvas);
+    $(function () {
+        $("#agentInspector").dialog({width:500, height:500});
+
+
+        var ht = new $jit.Hypertree({
+            //id of the visualization container
+            injectInto:'brain',
+            //By setting overridable=true,
+            //Node and Edge global properties can be
+            //overriden for each node/edge.
+            Node:{
+                overridable:true,
+                'transform':false
+            },
+
+            Edge:{
+                overridable:true
+            },
+            //calculate nodes offset
+            offset:0.2,
+            //Change the animation transition type
+            transition:$jit.Trans.Back.easeOut,
+            //animation duration (in milliseconds)
+            duration:200,
+
+            //This method is called right before plotting an
+            //edge. This method is useful for adding individual
+            //styles to edges.
+            onBeforePlotLine:function (adj) {
+                //Set random lineWidth for edges.
+                if (!adj.data.$lineWidth)
+                    adj.data.$lineWidth = Math.random() * 7 + 1;
+            },
+
+            onBeforeCompute:function (node) {
+                Log.write("centering");
+            },
+            //Attach event handlers on label creation.
+            onCreateLabel:function (domElement, node) {
+                //domElement.innerHTML = node.name;
+                domElement.style.cursor = "pointer";
+                domElement.onclick = function () {
+                    ht.onClick(node.id, { hideLabels:false });
+                };
+            },
+            //This method is called when moving/placing a label.
+            //You can add some positioning offsets to the labels here.
+            onPlaceLabel:function (domElement, node) {
+                var width = domElement.offsetWidth;
+                var intX = parseInt(domElement.style.left);
+                intX -= width / 2;
+                domElement.style.left = intX + 'px';
+            },
+
+            onAfterCompute:function () {
+
             }
-        };
+        });
+
+        function showBrain() {
+            //view.getBrain();
+            //load JSON graph.
+            ht.loadJSON(view.getBrain(), 2);
+            //compute positions and plot
+            ht.refresh();
+            //end
+            ht.controller.onBeforeCompute(ht.graph.getNode(ht.root));
+            ht.controller.onAfterCompute();
+        }
 
 
-         var view = new Life.View(settings);
+        $("canvas").click(function () {
+            showBrain();
+        });
+    });
 
 
+</script>
+<div id="agentInspector" title="Agent Inspector">
 
-
-         document.body.appendChild( view.canvas );
-
-    </script>
+    <div id="brain"></div>
+</div>
 </body>
 </html>
